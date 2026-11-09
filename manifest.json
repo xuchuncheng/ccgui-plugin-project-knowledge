@@ -1,7 +1,7 @@
 {
   "id": "project-knowledge",
   "name": "项目知识",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "tier": "js",
   "sdkVersion": "^0.3",
   "minAppVersion": "1.1.1",

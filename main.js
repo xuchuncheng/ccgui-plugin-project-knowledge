@@ -1335,9 +1335,39 @@ export default function activate(ctx) {
     },
   });
 
+  // 页签条里的插件 tab 只渲染图标（label 只作 title / 无障碍名）。宿主的
+  // 「文件」「变更」两枚图标都是 lucide 描边图标，这里给同一套规格的
+  // 笔记图标（24×24 viewBox、stroke-width 2、圆头圆角、currentColor），
+  // 16px 下三枚图标的线条粗细与留白一致，不会显得像另一套 UI。
+  function PanelTabIcon(props) {
+    var p = props || {};
+    return h("svg", {
+      xmlns: "http://www.w3.org/2000/svg",
+      viewBox: "0 0 24 24",
+      width: 24,
+      height: 24,
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: 2,
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      className: p.className,
+      "aria-hidden": p["aria-hidden"] != null ? p["aria-hidden"] : "true",
+    },
+      h("path", { key: "m1", d: "M8 2v4" }),
+      h("path", { key: "m2", d: "M12 2v4" }),
+      h("path", { key: "m3", d: "M16 2v4" }),
+      h("rect", { key: "body", x: 4, y: 4, width: 16, height: 18, rx: 2 }),
+      h("path", { key: "l1", d: "M8 10h6" }),
+      h("path", { key: "l2", d: "M8 14h8" }),
+      h("path", { key: "l3", d: "M8 18h5" })
+    );
+  }
+
   ctx.ui.registerPanelTab({
     key: NS,
     label: function () { return "项目知识"; },
+    icon: PanelTabIcon,
     component: function (props) { return h(Panel, { workspacePath: props && props.workspacePath }); },
     order: 25,
   });

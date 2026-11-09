@@ -48,6 +48,9 @@
   （`placement: request-tail`、`visibility: internal`、`persistence: turn`），宿主把它附在本轮 prompt 之后。
   这是宿主唯一能让「挂载态」随每一轮重建的通道——移出即不带，不需要重启会话。
 - 宿主对所有插件的提示贡献合计只有 12KB 预算，本插件自留 8KB，超出部分省略并在上下文里注明。
+- 页签条里的插件 tab 只渲染图标（`label` 只作 hover 提示与无障碍名）。`registerPanelTab` 显式注册了
+  与宿主「文件」「变更」同规格的 lucide 描边图标（24×24 viewBox、`stroke-width: 2`、
+  `currentColor`、圆头圆角），选中 / 未选中都跟随宿主的主题色，不会回落成彩色首字母瓷砖。
 - 存储走 `ctx.storage` 单键 `knowledge:v1`（宿主 `plugin_kv`），按工作区分片存笔记 / 待办 / 计划，
   `mounts` 单独存挂载。不读写 `localStorage`，不碰宿主内部对象。
 - 计划【发送到会话】用 `ctx.sessions.startRun`：宿主没有「往当前会话追加一条消息」的插件 API。
@@ -103,7 +106,7 @@ node --test test/core.test.mjs
 `styles.css` / `checksums.txt` 附到该 tag 的 Release。
 
 ```bash
-git tag 0.1.0 && git push origin 0.1.0
+git tag 0.1.1 && git push origin 0.1.1
 ```
 
 ## 许可

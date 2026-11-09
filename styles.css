@@ -45,8 +45,29 @@
 }
 .pk-header-actions {
   display: flex;
+  align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
+/* 「页签只显示图标」开关：和左侧三个链接同排，右侧自带一点留白。 */
+.pk-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-secondary, #52525b);
+  cursor: pointer;
+  user-select: none;
+}
+.pk-toggle input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--color-accent-500, #2f7df6);
+  cursor: pointer;
+}
+.pk-toggle:hover { color: var(--color-text-primary, #18181b); }
 .pk-link-btn {
   border: none;
   background: none;

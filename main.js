@@ -67,12 +67,16 @@ export default function activate(ctx) {
   // ================= 数据模型 =================
 
   function blankData() {
-    return { version: 1, knowledge: {}, mounts: {} };
+    return { version: 1, knowledge: {}, mounts: {}, ui: { showLabel: true } };
   }
 
   function normalizeData(raw) {
     var data = blankData();
     if (!raw || typeof raw !== "object") return data;
+    // 只有显式关闭才是「仅图标」；老版本数据没有 ui 字段，默认显示文字。
+    if (raw.ui && typeof raw.ui === "object" && raw.ui.showLabel === false) {
+      data.ui.showLabel = false;
+    }
     var kn = raw.knowledge;
     if (kn && typeof kn === "object") {
       Object.keys(kn).forEach(function (ws) {
@@ -284,6 +288,24 @@ export default function activate(ctx) {
     var next = String(ws || "");
     if (state.activeWs === next) return;
     setState({ activeWs: next });
+  }
+
+  // ---- 显示偏好 ----
+
+  // 页签样式：默认 false（图标 + 「知识」文字，和内置「文件」「变更」同一排长相）；
+  // true 时只留图标，把页签条压到最窄。
+  function iconOnly() {
+    return !!(state.data && state.data.ui && state.data.ui.showLabel === false);
+  }
+
+  function setIconOnly(next) {
+    var want = !!next;
+    if (iconOnly() === want) return;
+    mutate(function (data) {
+      if (!data.ui || typeof data.ui !== "object") data.ui = { showLabel: true };
+      data.ui.showLabel = !want;
+      return true;
+    });
   }
 
   // ---- 挂载状态 ----
@@ -1183,7 +1205,17 @@ export default function activate(ctx) {
             className: "pk-link-btn" + (armedClear ? " is-danger" : ""),
             disabled: mounted.length === 0,
             onClick: askClear,
-          }, armedClear ? "确认清空" : "一键清空"))),
+          }, armedClear ? "确认清空" : "一键清空"),
+          h("label", {
+            className: "pk-toggle",
+            title: "默认显示「图标 + 知识」；勾上后右侧页签只留图标，把页签条压到最窄",
+          },
+            h("input", {
+              type: "checkbox",
+              checked: iconOnly(),
+              onChange: function (e) { setIconOnly(e.target.checked); },
+            }),
+            h("span", null, "页签只显示图标")))),
 
       h("div", { className: "pk-tabs", role: "tablist" },
         tabDefs.map(function (t) {
@@ -1335,24 +1367,31 @@ export default function activate(ctx) {
     },
   });
 
-  // 页签条里的插件 tab 只渲染图标（label 只作 title / 无障碍名）。宿主的
-  // 「文件」「变更」两枚图标都是 lucide 描边图标，这里给同一套规格的
-  // 笔记图标（24×24 viewBox、stroke-width 2、圆头圆角、currentColor），
-  // 16px 下三枚图标的线条粗细与留白一致，不会显得像另一套 UI。
+  // 页签条里的插件 tab 只渲染图标，`label` 只作 title / 无障碍名。为了让插件
+  // 页签和宿主内置的「文件」「变更」长成一套东西，这里用同一套 lucide 规格画
+  // 图标（24×24 viewBox、stroke-width 2、圆头圆角、currentColor），并可选择
+  // 在图标右侧带一个「知识」文字——宿主只往这里塞 className / aria-hidden，
+  // 所以文字只能由插件自己画。默认显示文字，与内置页签一致；关掉后只剩图标。
+  var TAB_TEXT = "知识";
+
   function PanelTabIcon(props) {
     var p = props || {};
-    return h("svg", {
+    // 订阅 store：用户在面板里切换「仅图标」时页签要立刻跟着变。
+    React.useSyncExternalStore(subscribe, getSnapshot);
+    var showLabel = !iconOnly();
+    var glyph = h("svg", {
       xmlns: "http://www.w3.org/2000/svg",
       viewBox: "0 0 24 24",
-      width: 24,
-      height: 24,
+      width: 16,
+      height: 16,
       fill: "none",
       stroke: "currentColor",
       strokeWidth: 2,
       strokeLinecap: "round",
       strokeLinejoin: "round",
-      className: p.className,
-      "aria-hidden": p["aria-hidden"] != null ? p["aria-hidden"] : "true",
+      "aria-hidden": "true",
+      style: showLabel ? { display: "block", flex: "none" } : undefined,
+      className: showLabel ? undefined : p.className,
     },
       h("path", { key: "m1", d: "M8 2v4" }),
       h("path", { key: "m2", d: "M12 2v4" }),
@@ -1361,6 +1400,36 @@ export default function activate(ctx) {
       h("path", { key: "l1", d: "M8 10h6" }),
       h("path", { key: "l2", d: "M8 14h8" }),
       h("path", { key: "l3", d: "M8 18h5" })
+    );
+
+    if (!showLabel) return glyph;
+
+    // 宿主给的是 size-4（16×16），带文字时要撑开：行内样式覆盖 width。
+    // 高度交给文字行高（1.125rem × 字号倍率）撑，与内置页签的行盒一致。
+    return h("span", {
+      className: p.className,
+      "aria-hidden": p["aria-hidden"] != null ? p["aria-hidden"] : "true",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+        width: "auto",
+        height: "auto",
+        lineHeight: 1,
+      },
+    },
+      glyph,
+      h("span", {
+        key: "label",
+        style: {
+          // 与宿主页签文字同档：text-body-2-medium（13px / 18px / 500），
+          // 并跟随设置里的界面字号与字重偏移。
+          fontSize: "calc(0.8125rem * var(--ui-font-scale, 1))",
+          lineHeight: "calc(1.125rem * var(--ui-font-scale, 1))",
+          fontWeight: "min(900, calc(500 + var(--ui-font-weight-offset, 0)))",
+          whiteSpace: "nowrap",
+        },
+      }, TAB_TEXT)
     );
   }
 
